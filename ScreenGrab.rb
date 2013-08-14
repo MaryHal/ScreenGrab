@@ -2,9 +2,8 @@
 
 require 'optparse'
 
-options = {}
-
 # Parse command line options
+options = {}
 optparse = OptionParser.new do|opts|
     #opts.banner = ""
 
@@ -26,10 +25,34 @@ end
 
 optparse.parse!
 
-def capture(options)
-    `ffmpeg -f x11grab -r #{options[:fps]} -i :0.0 -f alsa -i hw:0,0 -acodec flac -vcodec ffvhuff #{options[:output]}`
+vcodecs = Hash.new
+vcodecs[:h264_fast] = []
+
+acodecs = Hash.new
+acodecs[:flac] = []
+
+def captureCommand(exe)
+    command = [exe,
+               # Audio Settings
+               "-f",      "alsa",
+               "-ac",     "2",       # Two audio channels
+               "-i",      "hw:0,0",
+               "-acodec", "flac",
+
+               # Video Settings
+               "-f",      "x11grab",
+               "-r",      "30",      # Frame Rate
+               "-i",      ":0.0",
+               "-vcodec",  "libtheora",
+               "-b:v",     "4000k",
+
+               # Output file
+               "test.mkv"
+    ]
+    return command.join(' ')
 end
 
+# Dependency Checking
 def which(cmd)
   exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
   ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
@@ -56,8 +79,10 @@ end
 
 # Main script
 if __FILE__ == $0
-    puts checkDependencies
-    #puts options
-    #capture(options)
+    puts options
+
+    exe = checkDependencies
+    command = captureCommand(exe)
+    `#{command}`
 end
 
