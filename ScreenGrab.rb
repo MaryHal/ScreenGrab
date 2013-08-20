@@ -5,6 +5,7 @@ require 'optparse'
 vdevices = Hash.new
 vdevices["none"] = []
 vdevices["desktop"] = ["-f", "x11grab", "-i", ":0.0"]
+vdevices["window"]  = ["-f", "x11grab", "-s", "", "-i", ":0.0"]
 vdevices["webcam"]  = ["-f", "v4l2", "-i", "/dev/video0"]
 
 vcodecs = Hash.new
@@ -75,6 +76,7 @@ def windowInfo
     y = 0
     w = 0
     h = 0
+    b = 0
 
     regex = /([0-9]+)/
 
@@ -88,9 +90,11 @@ def windowInfo
             w = line.match(regex).captures[0].to_i
         elsif line.include? 'Height:'
             h = line.match(regex).captures[0].to_i
+        elsif line.include? 'Border width:'
+            b = line.match(regex).captures[0].to_i
         end
     end
-    puts x, y, w, h
+    return [x, y, w, h, b]
 end
 
 # Dependency Checking
@@ -123,13 +127,21 @@ if __FILE__ == $0
     puts options
     exe = checkDependencies
 
+    video = vdevices[options[:vdevice]]
+    if options[:vdevice] == 'window'
+        view = windowInfo()
+        video[3] = "#{view[2]}x#{view[3]}"
+        video[5] += "+#{view[0]+view[4]},#{view[1]+view[4]}"
+    end
+
     command = [exe] + 
               adevices[options[:adevice]] +
               acodecs[options[:acodec]] +
-              vdevices[options[:vdevice]] +
+              video + 
               vcodecs[options[:vcodec]] +
               [options[:output]]
     command = command.join(' ')
+    puts command
     `#{command}`
     #windowInfo
 end
