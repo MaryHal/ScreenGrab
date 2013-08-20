@@ -34,25 +34,25 @@ optparse = OptionParser.new do|opts|
 
     options[:acodec] = "vorbis"
     acodecList = acodecs.keys.join(', ')
-    opts.on( '-a', '--acodec codec', acodecList, 'Audio Codec' ) do|codec|
+    opts.on( '-a', '--acodec codec', 'Audio Codec', acodecList ) do|codec|
         options[:acodec] = codec
     end
 
     options[:adevice] = "alsa"
     adeviceList = adevices.keys.join(', ')
-    opts.on( '-ad', '--adevice device', adeviceList, 'Audio Device' ) do|device|
+    opts.on( '-d', '--adevice device', 'Audio Device', adeviceList ) do|device|
         options[:adevice] = device
     end
 
     options[:vcodec] = "theora"
     vcodecList = vcodecs.keys.join(', ')
-    opts.on( '-v', '--vcodec codec', vcodecList, 'Video Codec' ) do|codec|
+    opts.on( '-v', '--vcodec codec', 'Video Codec', vcodecList ) do|codec|
         options[:vcodec] = codec
     end
 
     options[:vdevice] = "desktop"
     vdeviceList = vdevices.keys.join(', ')
-    opts.on( '-vd', '--vdevice device', vdeviceList, 'Video Device' ) do|device|
+    opts.on( '-s', '--vdevice device', 'Video Device', vdeviceList ) do|device|
         options[:vdevice] = device
     end
 
@@ -61,7 +61,6 @@ optparse = OptionParser.new do|opts|
         options[:fps] = fps
     end
 
-
     opts.on( '-h', '--help', 'Display this screen' ) do
         puts opts
         exit
@@ -69,6 +68,30 @@ optparse = OptionParser.new do|opts|
 end
 
 optparse.parse!
+
+# Parsing xwininfo
+def windowInfo
+    x = 0
+    y = 0
+    w = 0
+    h = 0
+
+    regex = /([0-9]+)/
+
+    out = `xwininfo`
+    out.each_line do |line|
+        if line.include? 'Absolute upper-left X:'
+            x = line.match(regex).captures[0].to_i
+        elsif line.include? 'Absolute upper-left Y:'
+            y = line.match(regex).captures[0].to_i
+        elsif line.include? 'Width:'
+            w = line.match(regex).captures[0].to_i
+        elsif line.include? 'Height:'
+            h = line.match(regex).captures[0].to_i
+        end
+    end
+    puts x, y, w, h
+end
 
 # Dependency Checking
 def which(cmd)
@@ -108,5 +131,6 @@ if __FILE__ == $0
               [options[:output]]
     command = command.join(' ')
     `#{command}`
+    #windowInfo
 end
 
