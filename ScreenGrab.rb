@@ -2,26 +2,65 @@
 
 require 'optparse'
 
-vdevices = Hash.new
-vdevices["none"] = []
-vdevices["desktop"] = ["-f", "x11grab", "-i", ":0.0"]
-vdevices["window"]  = ["-f", "x11grab", "-s", "", "-i", ":0.0"]
-vdevices["webcam"]  = ["-f", "v4l2", "-i", "/dev/video0"]
+class ScriptOptions
+    attr_reader :vdevices, :vcodecs, :adevices, :acodecs
 
-vcodecs = Hash.new
-vcodecs["raw"]        = ["-vcodec", "ffvhuff"]
-vcodecs["h264_ultra"] = ["-vcodec", "libx264", "-preset", "ultrafast", "-qp", "0"]
-vcodecs["h264_slow"]  = ["-vcodec", "libx264", "-preset", "veryslow", "-qp", "0"]
-vcodecs["theora"]     = ["-vcodec", "libtheora", "-b:v", "4000k"]
+    def initialize()
+        @vdevices = Hash.new
+        @vdevices["none"] = []
+        @vdevices["desktop"] = ["-f", "x11grab", "-i", ":0.0"]
+        @vdevices["window"]  = ["-f", "x11grab", "-s", "", "-i", ":0.0"]
+        @vdevices["webcam"]  = ["-f", "v4l2", "-i", "/dev/video0"]
 
-adevices = Hash.new
-adevices["none"] = []
-adevices["alsa"] = ["-f", "alsa", "-i", "hw:0,0"]
+        @vcodecs = Hash.new
+        @vcodecs["raw"]        = ["-vcodec", "ffvhuff"]
+        @vcodecs["h264_ultra"] = ["-vcodec", "libx264", "-preset", "ultrafast", "-qp", "0"]
+        @vcodecs["h264_slow"]  = ["-vcodec", "libx264", "-preset", "veryslow", "-qp", "0"]
+        @vcodecs["theora"]     = ["-vcodec", "libtheora", "-b:v", "4000k"]
 
-acodecs = Hash.new
-acodecs["flac"]   = ["-acodec", "flac"]
-acodecs["vorbis"] = ["-acodec", "libvorbis"]
-acodecs["mp3"]    = ["-acodec", "libmp3lame"]
+        @adevices = Hash.new
+        @adevices["none"] = []
+        @adevices["alsa"] = ["-f", "alsa", "-i", "hw:0,0"]
+
+        @acodecs = Hash.new
+        @acodecs["flac"]   = ["-acodec", "flac"]
+        @acodecs["vorbis"] = ["-acodec", "libvorbis"]
+        @acodecs["mp3"]    = ["-acodec", "libmp3lame"]
+    end
+
+    def buildVideoOptions(device, codec, rate)
+    end
+
+    def buildAudioOptions(device, codec)
+    end
+
+    # Parsing xwininfo
+    def windowInfo
+        x = 0
+        y = 0
+        w = 0
+        h = 0
+        b = 0
+
+        regex = /([0-9]+)/
+
+        out = `xwininfo`
+        out.each_line do |line|
+            if line.include? 'Absolute upper-left X:'
+                x = line.match(regex).captures[0].to_i
+            elsif line.include? 'Absolute upper-left Y:'
+                y = line.match(regex).captures[0].to_i
+            elsif line.include? 'Width:'
+                w = line.match(regex).captures[0].to_i
+            elsif line.include? 'Height:'
+                h = line.match(regex).captures[0].to_i
+            elsif line.include? 'Border width:'
+                b = line.match(regex).captures[0].to_i
+            end
+        end
+        return [x, y, w, h, b]
+    end
+end
 
 # Parse command line options
 options = {}
@@ -34,26 +73,22 @@ optparse = OptionParser.new do|opts|
     end
 
     options[:acodec] = "vorbis"
-    acodecList = acodecs.keys.join(', ')
-    opts.on( '-a', '--acodec codec', 'Audio Codec', acodecList ) do|codec|
+    opts.on( '-a', '--acodec codec', 'Audio Codec' ) do|codec|
         options[:acodec] = codec
     end
 
     options[:adevice] = "alsa"
-    adeviceList = adevices.keys.join(', ')
-    opts.on( '-d', '--adevice device', 'Audio Device', adeviceList ) do|device|
+    opts.on( '-d', '--adevice device', 'Audio Device' ) do|device|
         options[:adevice] = device
     end
 
     options[:vcodec] = "theora"
-    vcodecList = vcodecs.keys.join(', ')
-    opts.on( '-v', '--vcodec codec', 'Video Codec', vcodecList ) do|codec|
+    opts.on( '-v', '--vcodec codec', 'Video Codec' ) do|codec|
         options[:vcodec] = codec
     end
 
     options[:vdevice] = "desktop"
-    vdeviceList = vdevices.keys.join(', ')
-    opts.on( '-s', '--vdevice device', 'Video Device', vdeviceList ) do|device|
+    opts.on( '-s', '--vdevice device', 'Video Device' ) do|device|
         options[:vdevice] = device
     end
 
@@ -69,33 +104,6 @@ optparse = OptionParser.new do|opts|
 end
 
 optparse.parse!
-
-# Parsing xwininfo
-def windowInfo
-    x = 0
-    y = 0
-    w = 0
-    h = 0
-    b = 0
-
-    regex = /([0-9]+)/
-
-    out = `xwininfo`
-    out.each_line do |line|
-        if line.include? 'Absolute upper-left X:'
-            x = line.match(regex).captures[0].to_i
-        elsif line.include? 'Absolute upper-left Y:'
-            y = line.match(regex).captures[0].to_i
-        elsif line.include? 'Width:'
-            w = line.match(regex).captures[0].to_i
-        elsif line.include? 'Height:'
-            h = line.match(regex).captures[0].to_i
-        elsif line.include? 'Border width:'
-            b = line.match(regex).captures[0].to_i
-        end
-    end
-    return [x, y, w, h, b]
-end
 
 # Dependency Checking
 def which(cmd)
@@ -127,6 +135,7 @@ if __FILE__ == $0
     puts options
     exe = checkDependencies
 
+=begin
     video = vdevices[options[:vdevice]]
     if options[:vdevice] == 'window'
         view = windowInfo()
@@ -143,6 +152,6 @@ if __FILE__ == $0
     command = command.join(' ')
     puts command
     `#{command}`
-    #windowInfo
+=end
 end
 
