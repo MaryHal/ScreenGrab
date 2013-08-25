@@ -29,9 +29,23 @@ class ScriptOptions
     end
 
     def buildVideoOptions(device, codec, rate)
+        videoCommand = @vdevices[device] +
+                       @vcodecs[codec] +
+                       [ '-r', rate.to_s ]
+
+        if device == 'window'
+            view = windowInfo()
+            videoCommand[3] =  "#{view[2]}x#{view[3]}"
+            videoCommand[5] += "+#{view[0]+view[4]},#{view[1]+view[4]}"
+        end
+
+        return videoCommand
     end
 
     def buildAudioOptions(device, codec)
+    end
+
+    def buildCommand()
     end
 
     # Parsing xwininfo
