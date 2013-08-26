@@ -7,7 +7,6 @@ class ScriptOptions
 
     def initialize()
         @vdevices = Hash.new
-        @vdevices["none"] = []
         @vdevices["desktop"] = ["-f", "x11grab", "-i", ":0.0"]
         @vdevices["window"]  = ["-f", "x11grab", "-s", "", "-i", ":0.0"]
         @vdevices["webcam"]  = ["-f", "v4l2", "-i", "/dev/video0"]
@@ -19,7 +18,6 @@ class ScriptOptions
         @vcodecs["theora"]     = ["-vcodec", "libtheora", "-b:v", "4000k"]
 
         @adevices = Hash.new
-        @adevices["none"] = []
         @adevices["alsa"] = ["-f", "alsa", "-i", "hw:0,0"]
 
         @acodecs = Hash.new
@@ -29,6 +27,10 @@ class ScriptOptions
     end
 
     def buildVideoOptions(device, codec, rate)
+        if device == 'none'
+            return []
+        end
+
         videoCommand = @vdevices[device] +
                        @vcodecs[codec] +
                        [ '-r', rate.to_s ]
@@ -43,9 +45,21 @@ class ScriptOptions
     end
 
     def buildAudioOptions(device, codec)
+        if device == 'none'
+            return []
+        end
+
+        audioCommand = @adevices[device] +
+                       @acodecs[codec]
+
+        return audioCommand
     end
 
-    def buildCommand()
+    def buildCommand(exe, vdevice, vcodec, rate, adevice, acodec, filename)
+        return ([exe] + 
+               buildVideoOptions(vdevice, vcodec, rate) +
+               buildAudioOptions(adevice, acodec) +
+               [filename]).join(' ')
     end
 
     # Parsing xwininfo
@@ -91,7 +105,7 @@ optparse = OptionParser.new do|opts|
         options[:acodec] = codec
     end
 
-    options[:adevice] = "alsa"
+    options[:adevice] = "none"
     opts.on( '-d', '--adevice device', 'Audio Device' ) do|device|
         options[:adevice] = device
     end
@@ -149,23 +163,13 @@ if __FILE__ == $0
     puts options
     exe = checkDependencies
 
-=begin
-    video = vdevices[options[:vdevice]]
-    if options[:vdevice] == 'window'
-        view = windowInfo()
-        video[3] = "#{view[2]}x#{view[3]}"
-        video[5] += "+#{view[0]+view[4]},#{view[1]+view[4]}"
-    end
+    script = ScriptOptions.new
+    command = script.buildCommand(exe,
+                                  options[:vdevice], options[:vcodec], options[:fps],
+                                  options[:adevice], options[:acodec],
+                                  options[:output])
 
-    command = [exe] + 
-              adevices[options[:adevice]] +
-              acodecs[options[:acodec]] +
-              video + 
-              vcodecs[options[:vcodec]] +
-              [options[:output]]
-    command = command.join(' ')
     puts command
     `#{command}`
-=end
 end
 
