@@ -57,8 +57,8 @@ class ScriptOptions
 
     def buildCommand(exe, vdevice, vcodec, rate, adevice, acodec, filename)
         return ([exe] + 
-               buildVideoOptions(vdevice, vcodec, rate) +
                buildAudioOptions(adevice, acodec) +
+               buildVideoOptions(vdevice, vcodec, rate) +
                [filename]).join(' ')
     end
 
