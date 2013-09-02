@@ -2,6 +2,30 @@
 
 require 'optparse'
 
+class WindowInfo
+    attr_reader :x, :y, :w, :h, :b
+
+    def initialize()
+        regex = /([0-9]+)/
+
+        puts "Click window to capture"
+        out = `xwininfo`
+        out.each_line do |line|
+            if line.include? 'Absolute upper-left X:'
+                @x = line.match(regex).captures[0].to_i
+            elsif line.include? 'Absolute upper-left Y:'
+                @y = line.match(regex).captures[0].to_i
+            elsif line.include? 'Width:'
+                @w = line.match(regex).captures[0].to_i
+            elsif line.include? 'Height:'
+                @h = line.match(regex).captures[0].to_i
+            elsif line.include? 'Border width:'
+                @b = line.match(regex).captures[0].to_i
+            end
+        end
+    end
+end
+
 class ScriptOptions
     attr_reader :vdevices, :vcodecs, :adevices, :acodecs
 
@@ -26,7 +50,7 @@ class ScriptOptions
         @acodecs["mp3"]    = ["-acodec", "libmp3lame"]
     end
 
-    def buildVideoOptions(device, codec, rate)
+    def buildVideoOptions(device, codec, rate, border)
         if device == 'none'
             return []
         end
@@ -36,9 +60,15 @@ class ScriptOptions
                        [ '-r', rate.to_s ]
 
         if device == 'window'
-            view = windowInfo()
-            videoCommand[3] =  "#{view[2]}x#{view[3]}"
-            videoCommand[5] += "+#{view[0]+view[4]},#{view[1]+view[4]}"
+            view = WindowInfo.new
+
+            if border
+                videoCommand[3] =  "#{view.w + 2*view.b}x#{view.h + 2*view.b}"
+                videoCommand[5] += "+#{view.x},#{view.y}"
+            else
+                videoCommand[3] =  "#{view.w}x#{view.h}"
+                videoCommand[5] += "+#{view.x+view.b},#{view.y+view.b}"
+            end
         end
 
         return videoCommand
@@ -55,38 +85,11 @@ class ScriptOptions
         return audioCommand
     end
 
-    def buildCommand(exe, vdevice, vcodec, rate, adevice, acodec, filename)
+    def buildCommand(exe, vdevice, vcodec, rate, border, adevice, acodec, filename)
         return ([exe] + 
                buildAudioOptions(adevice, acodec) +
-               buildVideoOptions(vdevice, vcodec, rate) +
+               buildVideoOptions(vdevice, vcodec, rate, border) +
                [filename]).join(' ')
-    end
-
-    # Parsing xwininfo
-    def windowInfo
-        x = 0
-        y = 0
-        w = 0
-        h = 0
-        b = 0
-
-        regex = /([0-9]+)/
-
-        out = `xwininfo`
-        out.each_line do |line|
-            if line.include? 'Absolute upper-left X:'
-                x = line.match(regex).captures[0].to_i
-            elsif line.include? 'Absolute upper-left Y:'
-                y = line.match(regex).captures[0].to_i
-            elsif line.include? 'Width:'
-                w = line.match(regex).captures[0].to_i
-            elsif line.include? 'Height:'
-                h = line.match(regex).captures[0].to_i
-            elsif line.include? 'Border width:'
-                b = line.match(regex).captures[0].to_i
-            end
-        end
-        return [x, y, w, h, b]
     end
 end
 
@@ -123,6 +126,10 @@ optparse = OptionParser.new do|opts|
     options[:fps] = 30
     opts.on( '-r', '--rate fps', Integer, 'Frames Per Second' ) do|fps|
         options[:fps] = fps
+    end
+
+    opts.on( '-b', '--border', 'If capturing a window, include the border?' ) do|b|
+        options[:border] = b
     end
 
     opts.on( '-h', '--help', 'Display this screen' ) do
@@ -165,7 +172,8 @@ if __FILE__ == $0
 
     script = ScriptOptions.new
     command = script.buildCommand(exe,
-                                  options[:vdevice], options[:vcodec], options[:fps],
+                                  options[:vdevice], options[:vcodec], 
+                                  options[:fps], options[:border],
                                   options[:adevice], options[:acodec],
                                   options[:output])
 
