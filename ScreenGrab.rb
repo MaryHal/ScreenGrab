@@ -6,6 +6,14 @@ class WindowInfo
     attr_reader :x, :y, :w, :h, :b
 
     def initialize()
+        @x = 0
+        @y = 0
+        @w = 0
+        @h = 0
+        @b = 0
+    end
+
+    def selectWindow()
         regex = /([0-9]+)/
 
         puts "Click window to capture"
@@ -23,6 +31,17 @@ class WindowInfo
                 @b = line.match(regex).captures[0].to_i
             end
         end
+    end
+
+    def selectMonitor()
+        @x = 0
+        @y = 0
+
+        regex = /primary (\d+)x(\d+)/
+        out = `xrandr`
+        dimemsions = out.match(regex).captures
+        @w = dimensions[0]
+        @h = dimensions[1]
     end
 end
 
@@ -61,6 +80,7 @@ class ScriptOptions
 
         if device == 'window'
             view = WindowInfo.new
+            view.selectWindow
 
             if border
                 videoCommand[3] =  "#{view.w + 2*view.b}x#{view.h + 2*view.b}"
