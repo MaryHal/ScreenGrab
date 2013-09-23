@@ -13,10 +13,6 @@ class WindowInfo
         @b = 0
     end
 
-    def to_s()
-      puts @x, @y, @w, @h, @b
-    end
-
     def selectWindow()
         regex = /([0-9]+)/
 
@@ -43,11 +39,9 @@ class WindowInfo
 
         regex = /primary (\d+)x(\d+)/
         out = `xrandr`
-        dimensions = out.match(regex).captures
+        dimemsions = out.match(regex).captures
         @w = dimensions[0]
         @h = dimensions[1]
-
-        @b = 0
     end
 end
 
@@ -112,7 +106,7 @@ class ScriptOptions
     end
 
     def buildCommand(exe, vdevice, vcodec, rate, border, adevice, acodec, filename)
-        return ([exe] +
+        return ([exe] + 
                buildAudioOptions(adevice, acodec) +
                buildVideoOptions(vdevice, vcodec, rate, border) +
                [filename]).join(' ')
@@ -198,7 +192,7 @@ if __FILE__ == $0
 
     script = ScriptOptions.new
     command = script.buildCommand(exe,
-                                  options[:vdevice], options[:vcodec],
+                                  options[:vdevice], options[:vcodec], 
                                   options[:fps], options[:border],
                                   options[:adevice], options[:acodec],
                                   options[:output])
@@ -206,3 +200,4 @@ if __FILE__ == $0
     puts command
     `#{command}`
 end
+
