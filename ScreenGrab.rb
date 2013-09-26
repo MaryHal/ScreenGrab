@@ -39,9 +39,11 @@ class WindowInfo
 
         regex = /primary (\d+)x(\d+)/
         out = `xrandr`
-        dimemsions = out.match(regex).captures
+        dimensions = out.match(regex).captures
         @w = dimensions[0]
         @h = dimensions[1]
+
+        @b = 0
     end
 end
 
@@ -50,7 +52,7 @@ class ScriptOptions
 
     def initialize()
         @vdevices = Hash.new
-        @vdevices["desktop"] = ["-f", "x11grab", "-i", ":0.0"]
+        @vdevices["desktop"] = ["-f", "x11grab", "-s", "", "-i", ":0.0"]
         @vdevices["window"]  = ["-f", "x11grab", "-s", "", "-i", ":0.0"]
         @vdevices["webcam"]  = ["-f", "v4l2", "-i", "/dev/video0"]
 
@@ -78,7 +80,13 @@ class ScriptOptions
                        @vcodecs[codec] +
                        [ '-r', rate.to_s ]
 
-        if device == 'window'
+        if device == 'desktop'
+            view = WindowInfo.new
+            view.selectMonitor
+
+            videoCommand[3] =  "#{view.w}x#{view.h}"
+            videoCommand[5] += "+#{view.x+view.b},#{view.y+view.b}"
+        elsif device == 'window'
             view = WindowInfo.new
             view.selectWindow
 
