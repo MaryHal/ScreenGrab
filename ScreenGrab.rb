@@ -37,9 +37,10 @@ class WindowInfo
         @x = 0
         @y = 0
 
-        regex = /primary (\d+)x(\d+)/
+        regex = /connected .* (\d+)x(\d+)/
         out = `xrandr`
         dimensions = out.match(regex).captures
+        puts dimensions
         @w = dimensions[0]
         @h = dimensions[1]
 
@@ -78,7 +79,8 @@ class ScriptOptions
 
         videoCommand = @vdevices[device] +
                        @vcodecs[codec] +
-                       [ '-r', rate.to_s ]
+                       [ '-r', rate.to_s,
+                         '-threads', 2.to_s]
 
         if device == 'desktop'
             view = WindowInfo.new
