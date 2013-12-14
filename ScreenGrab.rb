@@ -117,7 +117,7 @@ class ScriptOptions
   end
 
   def buildCommand(exe, vdevice, vcodec, rate, border, adevice, acodec, filename)
-    return ([exe] + 
+    return ([exe] +
             buildAudioOptions(adevice, acodec) +
             buildVideoOptions(vdevice, vcodec, rate, border) +
             [filename]).join(' ')
@@ -203,7 +203,7 @@ if __FILE__ == $0
 
   script = ScriptOptions.new
   command = script.buildCommand(exe,
-                                options[:vdevice], options[:vcodec], 
+                                options[:vdevice], options[:vcodec],
                                 options[:fps], options[:border],
                                 options[:adevice], options[:acodec],
                                 options[:output])
@@ -211,4 +211,3 @@ if __FILE__ == $0
   puts command
   `#{command}`
 end
-
